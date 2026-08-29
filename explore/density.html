@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Dimensional Density Explorer — Tenth House</title>
+<meta name="description" content="An interactive illustration of one geometric idea: near mass, the rate of step slows because the length of step grows. Watch clocks, rulers, and light respond to dimensional density.">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --ink:#e6edf3; --dim:#8b949e;
+    --gold:#d4a843; --teal:#4db8a8; --ray:#7ec8ff; --mass:#d4a843;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:Georgia,'Times New Roman',serif; line-height:1.55;}
+  header{max-width:900px; margin:0 auto; padding:2.2rem 1.2rem 0.8rem;}
+  header h1{font-size:1.7rem; font-weight:normal; letter-spacing:0.02em;}
+  header .one-idea{color:var(--gold); font-style:italic; margin-top:0.5rem; font-size:1.08rem;}
+  main{max-width:900px; margin:0 auto; padding:0 1.2rem 3rem;}
+  .stage-wrap{background:var(--panel); border:1px solid #2b3138; border-radius:10px; padding:0.8rem; margin-top:1.1rem;}
+  canvas{width:100%; height:auto; display:block; border-radius:6px; background:#0a0e13; touch-action:none; cursor:crosshair;}
+  .controls{display:flex; flex-wrap:wrap; gap:1.2rem; align-items:center; padding:0.9rem 0.4rem 0.2rem; font-family:system-ui,sans-serif; font-size:0.85rem; color:var(--dim);}
+  .controls label{display:flex; align-items:center; gap:0.55rem;}
+  input[type=range]{width:180px; accent-color:var(--gold);}
+  .gauges{display:flex; flex-wrap:wrap; gap:1.6rem; padding:0.7rem 0.4rem 0.1rem; font-family:system-ui,sans-serif; font-size:0.85rem;}
+  .gauge{display:flex; align-items:center; gap:0.6rem; color:var(--dim);}
+  .gauge b{color:var(--ink); font-weight:600;}
+  #clockface{width:34px; height:34px;}
+  #rulerbar{height:10px; background:var(--teal); border-radius:2px; transition:width 80ms linear;}
+  .ruler-track{width:120px; background:#22282f; border-radius:2px;}
+  .prose{margin-top:1.6rem; color:var(--ink); font-size:1.02rem;}
+  .prose p{margin-bottom:0.9rem;}
+  .prose .honest{color:var(--dim); font-size:0.92rem; border-left:3px solid var(--gold); padding-left:0.9rem; margin-top:1.3rem;}
+  a{color:var(--teal); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .hint{font-family:system-ui,sans-serif; font-size:0.78rem; color:var(--dim); padding:0.3rem 0.4rem 0;}
+</style>
+</head>
+<body>
+<header>
+  <h1>The Dimensional Density Explorer</h1>
+  <div class="one-idea">One idea: near mass, the rate of step slows because the length of step grows.</div>
+</header>
+<main>
+  <div class="stage-wrap">
+    <canvas id="stage" width="1200" height="640"></canvas>
+    <div class="hint">Drag the <span style="color:var(--teal)">◆ probe</span> anywhere. Drag the <span style="color:var(--gold)">● mass</span> too. Light enters from the left on its own.</div>
+    <div class="controls">
+      <label>Mass
+        <input type="range" id="massSlider" min="0" max="100" value="55">
+      </label>
+      <label><input type="checkbox" id="showField" checked> density field</label>
+      <label><input type="checkbox" id="showRays" checked> light</label>
+      <button id="resetBtn" style="background:none;border:1px solid #2b3138;color:var(--dim);border-radius:5px;padding:0.25rem 0.7rem;cursor:pointer;">reset</button>
+    </div>
+    <div class="gauges">
+      <div class="gauge"><svg id="clockface" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="#4db8a8" stroke-width="2"/><line id="clockhand" x1="20" y1="20" x2="20" y2="7" stroke="#e6edf3" stroke-width="2.4" stroke-linecap="round"/></svg><span>the <b>clock</b> at the probe — <b id="rateTxt">1.00×</b> tick rate</span></div>
+      <div class="gauge"><div class="ruler-track"><div id="rulerbar" style="width:60px"></div></div><span>the <b>ruler</b> at the probe — <b id="lenTxt">1.00×</b> step length</span></div>
+      <div class="gauge"><span>density at the probe: <b id="etaTxt">1.00</b></span></div>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p><strong>What you are looking at.</strong> The dots are not objects sitting in space — they are a picture of space itself, drawn denser where there is more of it. In this geometric picture, mass is a region where dimension concentrates. We call the concentration <em>dimensional density</em>.</p>
+    <p><strong>Two readouts, one substance.</strong> Drag the ◆ probe toward the mass and watch the two gauges. The clock ticks slower. The ruler's step grows longer. Neither is being pushed or pulled — both are simply <em>reading</em> the density where they stand. A clock and a ruler are two instruments reading one underlying quantity.</p>
+    <p><strong>Light bends with no force at all.</strong> The rays entering from the left curve around the mass — yet nothing tugs on them. Light always takes the straightest available path; where space is denser, the straightest path bends. What we have called gravity behaves, in this picture, like geometry doing what geometry does.</p>
+    <p class="honest">This is an illustration of a mechanism, not a calculation. The toy field here is qualitative; the quantitative versions of these claims — where they reproduce standard results and where they remain untested — are stated with their evidence in our <a href="../index.html#papers">published papers</a>. We grade our own claims conservatively and publish results either way.</p>
+  </div>
+</main>
+
+<script>
+(function(){
+  const cv = document.getElementById('stage'), cx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const state = {
+    mass: {x: W*0.52, y: H*0.5},
+    probe:{x: W*0.78, y: H*0.32},
+    A: 0.55*3.0,             // density amplitude from slider (0..3)
+    sigma: 120,              // bump width in px
+    showField: true, showRays: true,
+    dragging: null, t: 0, clockPhase: 0
+  };
+
+  // eta(r): smooth dimensional-density bump (illustrative, no divergence)
+  function eta(x, y){
+    const dx = x - state.mass.x, dy = y - state.mass.y;
+    const r2 = dx*dx + dy*dy, s2 = state.sigma*state.sigma;
+    return 1 + state.A * s2 / (r2 + s2);
+  }
+  // gradient of n = eta^2 (light reads the optical index n)
+  function gradN(x, y){
+    const h = 2.0;
+    const n0 = Math.pow(eta(x,y),2);
+    return {
+      x:(Math.pow(eta(x+h,y),2)-Math.pow(eta(x-h,y),2))/(2*h),
+      y:(Math.pow(eta(x,y+h),2)-Math.pow(eta(x,y-h),2))/(2*h),
+      n:n0
+    };
+  }
+
+  // field dots (fixed lattice; size/alpha follow eta)
+  const dots = [];
+  for(let gx=18; gx<W; gx+=26) for(let gy=14; gy<H; gy+=26) dots.push({x:gx,y:gy});
+
+  // rays: traced fresh each frame set; animated dash offset gives motion
+  function traceRay(y0){
+    const pts = [];
+    let x = 4, y = y0, dx = 1, dy = 0;
+    for(let i=0;i<900;i++){
+      const g = gradN(x,y);
+      // gradient-index bending: steer the unit direction toward increasing n (perpendicular component)
+      const perp = (g.y*dx - g.x*dy);            // component of grad n perpendicular to ray (z of cross)
+      const bend = 1.6 * perp / g.n;             // illustrative gain
+      const ndx = dx - bend*dy*0.02, ndy = dy + bend*dx*0.02;
+      const L = Math.hypot(ndx,ndy); dx = ndx/L; dy = ndy/L;
+      // step length shrinks visually in dense regions? keep constant px step; geometry shown via bending
+      x += dx*2.2; y += dy*2.2;
+      pts.push(x,y);
+      if(x<-10||x>W+10||y<-10||y>H+10) break;
+    }
+    return pts;
+  }
+  let rays = [];
+  function retrace(){
+    rays = [];
+    for(let k=0;k<9;k++){
+      const y0 = H*0.12 + k*(H*0.76/8);
+      rays.push(traceRay(y0));
+    }
+  }
+
+  function draw(){
+    cx.clearRect(0,0,W,H);
+    // field
+    if(state.showField){
+      for(const d of dots){
+        const e = eta(d.x,d.y);
+        const a = Math.min(0.85, 0.10 + (e-1)*0.38);
+        const r = 1.1 + (e-1)*2.6;
+        cx.beginPath(); cx.arc(d.x,d.y,r,0,6.2832);
+        cx.fillStyle = 'rgba(212,168,67,'+a.toFixed(3)+')';
+        cx.fill();
+      }
+    }
+    // rays
+    if(state.showRays){
+      cx.lineWidth = 1.6; cx.strokeStyle = 'rgba(126,200,255,0.85)';
+      cx.setLineDash([7,9]); cx.lineDashOffset = -state.t*0.9;
+      for(const p of rays){
+        cx.beginPath(); cx.moveTo(p[0],p[1]);
+        for(let i=2;i<p.length;i+=2) cx.lineTo(p[i],p[i+1]);
+        cx.stroke();
+      }
+      cx.setLineDash([]);
+    }
+    // mass
+    const mg = cx.createRadialGradient(state.mass.x,state.mass.y,2,state.mass.x,state.mass.y,26);
+    mg.addColorStop(0,'#ffe9b0'); mg.addColorStop(1,'rgba(212,168,67,0.15)');
+    cx.beginPath(); cx.arc(state.mass.x,state.mass.y,15,0,6.2832); cx.fillStyle=mg; cx.fill();
+    // probe (diamond)
+    const p = state.probe, e = eta(p.x,p.y);
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(Math.PI/4);
+    cx.fillStyle = '#4db8a8'; cx.fillRect(-7,-7,14,14); cx.restore();
+    // probe's local ruler: a short bar whose length scales with eta (length of step grows)
+    cx.strokeStyle='rgba(77,184,168,0.9)'; cx.lineWidth=3;
+    const seg = 16*e;
+    cx.beginPath(); cx.moveTo(p.x-seg, p.y+18); cx.lineTo(p.x+seg, p.y+18); cx.stroke();
+    cx.beginPath(); cx.moveTo(p.x-seg, p.y+13); cx.lineTo(p.x-seg, p.y+23); cx.stroke();
+    cx.beginPath(); cx.moveTo(p.x+seg, p.y+13); cx.lineTo(p.x+seg, p.y+23); cx.stroke();
+  }
+
+  function tick(){
+    state.t++;
+    const e = eta(state.probe.x, state.probe.y);
+    // clock at probe ticks at rate 1/eta
+    state.clockPhase += 0.07 / e;
+    const hand = document.getElementById('clockhand');
+    const ang = state.clockPhase;
+    hand.setAttribute('x2', 20 + 13*Math.sin(ang));
+    hand.setAttribute('y2', 20 - 13*Math.cos(ang));
+    document.getElementById('rateTxt').textContent = (1/e).toFixed(2)+'×';
+    document.getElementById('lenTxt').textContent  = e.toFixed(2)+'×';
+    document.getElementById('etaTxt').textContent  = e.toFixed(2);
+    document.getElementById('rulerbar').style.width = Math.min(120, 60*e)+'px';
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  // interaction
+  function pos(ev){
+    const r = cv.getBoundingClientRect();
+    const sx = W/r.width, sy = H/r.height;
+    const t = ev.touches ? ev.touches[0] : ev;
+    return {x:(t.clientX-r.left)*sx, y:(t.clientY-r.top)*sy};
+  }
+  function down(ev){
+    const p = pos(ev);
+    const dp = Math.hypot(p.x-state.probe.x, p.y-state.probe.y);
+    const dm = Math.hypot(p.x-state.mass.x,  p.y-state.mass.y);
+    state.dragging = (dp < dm && dp < 60) ? 'probe' : (dm < 60 ? 'mass' : 'probe');
+    move(ev); ev.preventDefault();
+  }
+  function move(ev){
+    if(!state.dragging) return;
+    const p = pos(ev);
+    const tgt = state[state.dragging];
+    tgt.x = Math.max(8,Math.min(W-8,p.x)); tgt.y = Math.max(8,Math.min(H-8,p.y));
+    if(state.dragging==='mass') retrace();
+    ev.preventDefault();
+  }
+  function up(){ state.dragging = null; }
+  cv.addEventListener('mousedown',down); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  cv.addEventListener('touchstart',down,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+
+  document.getElementById('massSlider').addEventListener('input', e=>{
+    state.A = (e.target.value/100)*3.0; retrace();
+  });
+  document.getElementById('showField').addEventListener('change', e=>{ state.showField = e.target.checked; });
+  document.getElementById('showRays').addEventListener('change', e=>{ state.showRays = e.target.checked; });
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    state.mass={x:W*0.52,y:H*0.5}; state.probe={x:W*0.78,y:H*0.32};
+    document.getElementById('massSlider').value=55; state.A=0.55*3.0; retrace();
+  });
+
+  retrace(); tick();
+})();
+</script>
+</body>
+</html>
